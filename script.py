@@ -6,6 +6,10 @@ from os import listdir
 from os.path import isfile, join
 import threading
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='[%(levelname)s] (%(threadName)-10s) %(message)s',
+)
 
 def get_cpu_count():
     cpu_count = multiprocessing.cpu_count()
@@ -21,7 +25,7 @@ def generate_trash_dir_name():
 
 def get_dir_structure_in_dfs(path):
     dir_list = []
-    for root, directories in os.walk("."):
+    for root, directories, files in os.walk(path):
         for directory in directories:
             dir_list.append(root + directory)
     logging.debug("Successfully created directory structure")
@@ -65,7 +69,7 @@ class RemoveDuplicateFile(threading.Thread):
 if __name__ == "__main__":
     global_file_detail = {}
     cpu_count = get_cpu_count()
-    path = input("Please enter source directory path")
+    path = input("Please enter source directory path: ")
     trash_dir_name = generate_trash_dir_name()
     trash_dir_path = path + trash_dir_name
     dir_list = get_dir_structure_in_dfs(path)
