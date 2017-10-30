@@ -6,8 +6,6 @@ from os import listdir
 from os.path import isfile, join
 import threading
 
-dir_list,
-
 
 def get_cpu_count():
     cpu_count = multiprocessing.cpu_count()
@@ -30,31 +28,33 @@ def get_dir_structure_in_dfs(path):
     return dir_list
 
 
+def create_trash_dir(path):
+    os.makedirs(path)
+
+
 class RemoveDuplicateFile(threading.Thread):
-    def __init__(self, name):
+    def __init__(self, name, trash_path):
         threading.Thread.__init__(self)
         self.name = name
+        self.trash_path = trash_path
 
-    def get_file_list(path):
-        return [f for f in listdir(path) if isfile(join(path, f))]
+    def extract_file_info(path):
+        return [(f, os.path.getsize(join(path, f))) for f in listdir(path) if isfile(join(path, f))]
 
     def run(self):
         try:
             path = dir_list.pop()
-            files = RemoveDuplicateFile.get_file_list(path)
-
-        except Exception as identifier:
-            pass
+        except IndexError as e:
+            logging.warning("Pop from empty list")
+        files = RemoveDuplicateFile.extract_file_info(path)
+        for file in files:
+            extract_file_info(file)
 
 
 if __name__ == "__main__":
+    file_info = {}
     cpu_count = get_cpu_count()
     path = input("Please enter source directory path")
     trash_dir_name = generate_trash_dir_name()
-    trash_dir_location = path + trash_dir_name
-
-
-
-
-    
-    dir_list = get_dir_structure_in_dfs(".")
+    trash_dir_path = path + trash_dir_name
+    dir_list = get_dir_structure_in_dfs(path)
