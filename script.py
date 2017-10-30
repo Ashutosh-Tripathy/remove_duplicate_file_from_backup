@@ -39,20 +39,31 @@ class RemoveDuplicateFile(threading.Thread):
         self.trash_path = trash_path
 
     def extract_file_info(path):
-        return [(f, os.path.getsize(join(path, f))) for f in listdir(path) if isfile(join(path, f))]
+        return {f: (os.path.getsize(join(path, f)), join(path, f)) for f in listdir(path)
+                if isfile(join(path, f))}
+
+    def move_file_to_trash(self, old_path):
+        os.rename(old_path, self.trash_path)
 
     def run(self):
         try:
             path = dir_list.pop()
         except IndexError as e:
             logging.warning("Pop from empty list")
-        files = RemoveDuplicateFile.extract_file_info(path)
-        for file in files:
-            extract_file_info(file)
+        file_info_dict = RemoveDuplicateFile.extract_file_info(path)
+        for file, detail in file_info_dict:
+            if file in global_file_detail:
+                if detail[0] == global_file_detail[file][0]:
+                    logging.info("Found duplicate file: %s origianl: %s duplicate: %s" % (
+                        file, global_file_detail[file][1], detail[1]))
+                    self.move_file_to_trash(detail[1])
+            else:
+                global_file_detail[file] = file_info_dict[file]
+
 
 
 if __name__ == "__main__":
-    file_info = {}
+    global_file_detail = {}
     cpu_count = get_cpu_count()
     path = input("Please enter source directory path")
     trash_dir_name = generate_trash_dir_name()
