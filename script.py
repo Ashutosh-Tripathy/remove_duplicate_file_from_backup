@@ -47,19 +47,19 @@ class RemoveDuplicateFile(threading.Thread):
 
     def run(self):
         try:
-            path = dir_list.pop()
+            dir_path = dir_list.pop()
         except IndexError as e:
-            logging.warning("Pop from empty list")
-        file_info_dict = RemoveDuplicateFile.extract_file_info(path)
+            logging.warning("%s-Pop from empty list" % (self.name))
+        file_info_dict = RemoveDuplicateFile.extract_file_info(dir_path)
+        logging.debug(file_info_dict)
         for file, detail in file_info_dict:
             if file in global_file_detail:
                 if detail[0] == global_file_detail[file][0]:
-                    logging.info("Found duplicate file: %s origianl: %s duplicate: %s" % (
-                        file, global_file_detail[file][1], detail[1]))
+                    logging.info("%s-Found duplicate file: %s origianl: %s duplicate: %s" % (
+                        self.name, file, global_file_detail[file][1], detail[1]))
                     self.move_file_to_trash(detail[1])
             else:
                 global_file_detail[file] = file_info_dict[file]
-
 
 
 if __name__ == "__main__":
@@ -69,3 +69,10 @@ if __name__ == "__main__":
     trash_dir_name = generate_trash_dir_name()
     trash_dir_path = path + trash_dir_name
     dir_list = get_dir_structure_in_dfs(path)
+    threads = []
+    for i in range(cpu_count):
+        thread = RemoveDuplicateFile("Thread-1", trash_dir_path)
+        thread.start()
+    for thread in threads:
+        thread.join()
+    print("Completed!!")
