@@ -20,6 +20,17 @@ def get_cpu_count():
     return cpu_count
 
 
+def trash_directory_already_present(path):
+    directories = [d for d in os.listdir(
+        path) if os.path.isdir(os.path.join(path, d))]
+    for directory in directories:
+        if directory.startswith('trash-'):
+            logging.error(
+                "%s: already have a folder starting with 'trash-'. Remove this folder before running again." % path)
+            return True
+    return False
+
+
 def generate_trash_dir_name():
     dir_name = "trash-%s" % datetime.today().strftime("%Y-%m-%d-%H-%M-%S-%f")
     logging.info("Trash file name: %s" % dir_name)
@@ -46,13 +57,12 @@ class RemoveDuplicateFile(threading.Thread):
         self.name = name
         self.trash_path = trash_path
 
-    def extract_file_info(path):
+    def extract_file_info(self, path):
         return {f: (os.path.getsize(join(path, f)), join(path, f)) for f in listdir(path)
                 if isfile(join(path, f))}
 
     def move_file_to_trash(self, old_path, file):
-        # os.rename(join(old_path, file), join(self.trash_path, file))
-        os.rename(old_path, self.trash_path)
+        os.rename(old_path, join(self.trash_path, file))
 
     def run(self):
         while len(global_dir_list) > 0:
@@ -82,14 +92,15 @@ if __name__ == "__main__":
     trash_dir_name = generate_trash_dir_name()
     trash_dir_path = path + trash_dir_name
     global_dir_list = get_dir_structure_in_dfs(path)
-    create_trash_dir(trash_dir_path)
-    threads = []
-    for i in range(1, cpu_count + 1):
-        thread = RemoveDuplicateFile("Thread-%d" % (i), trash_dir_path)
-        thread.start()
-        threads.append(thread)
-    for thread in threads:
-        thread.join()
-    logging.debug("global_file_detail")
-    logging.debug(global_file_detail)
+    if not trash_directory_already_present(path):
+        create_trash_dir(trash_dir_path)
+        threads = []
+        for i in range(1, cpu_count + 1):
+            thread = RemoveDuplicateFile("Thread-%d" % (i), trash_dir_path)
+            thread.start()
+            threads.append(thread)
+        for thread in threads:
+            thread.join()
+        logging.debug("global_file_detail")
+        logging.debug(global_file_detail)
     logging.debug("Completed!!")
