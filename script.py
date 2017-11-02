@@ -6,12 +6,26 @@ from os import listdir
 from os.path import isfile, join
 import threading
 
-logging.basicConfig(
-    filename="output.log",
-    level=logging.DEBUG,
-    format='[%(levelname)s] (%(threadName)-10s) %(message)s',
-    filemode='w'
-)
+
+def initialize_logger():
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    # create console handler and set level to info
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        '[%(levelname)s] (%(threadName)-10s) %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    # create debug file handler and set level to debug
+    handler = logging.FileHandler("output.log", "w")
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        '[%(levelname)s] (%(threadName)-10s) %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 
 def get_cpu_count():
@@ -43,7 +57,7 @@ def get_dir_structure_in_dfs(path):
         for directory in directories:
             dir_list.append(root + directory)
     dir_list.insert(0, path)
-    logging.debug("Successfully created directory structure")
+    logging.debug("Successfully scanned directory structure")
     return dir_list
 
 
@@ -70,10 +84,8 @@ class RemoveDuplicateFile(threading.Thread):
                 dir_path = global_dir_list.pop(0)
             except IndexError as e:
                 logging.warning("%s-Pop from empty list" % (self.name))
+            logging.debug("scan file in directory: %s" % dir_path)
             file_info_dict = self.extract_file_info(dir_path)
-            logging.debug("file_info_dict")
-            logging.debug(file_info_dict)
-            logging.debug(dir_path)
             for file in file_info_dict:
                 detail = file_info_dict[file]
                 if file in global_file_detail and detail[0] == global_file_detail[file][0]:
@@ -85,10 +97,12 @@ class RemoveDuplicateFile(threading.Thread):
 
 
 if __name__ == "__main__":
+    initialize_logger()
     global_file_detail = {}
     cpu_count = get_cpu_count()
-    # path = input("Please enter source directory path: ")
-    path = 'd:/pers/test/'
+    path = input("Please enter source directory path: ")
+    # path = 'd:/pers/test/'
+    path = path if path[-1] == '/' else path + "/"
     trash_dir_name = generate_trash_dir_name()
     trash_dir_path = path + trash_dir_name
     global_dir_list = get_dir_structure_in_dfs(path)
@@ -101,6 +115,4 @@ if __name__ == "__main__":
             threads.append(thread)
         for thread in threads:
             thread.join()
-        logging.debug("global_file_detail")
-        logging.debug(global_file_detail)
     logging.debug("Completed!!")
