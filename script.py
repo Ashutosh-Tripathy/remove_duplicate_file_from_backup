@@ -5,6 +5,7 @@ import os
 from os import listdir
 from os.path import isfile, join
 import threading
+import uuid
 
 
 def initialize_logger():
@@ -46,7 +47,7 @@ def trash_directory_already_present(path):
 
 
 def generate_trash_dir_name():
-    dir_name = "trash-%s" % datetime.today().strftime("%Y-%m-%d-%H-%M-%S-%f")
+    dir_name = "trash-%s" % datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
     logging.info("Trash file name: %s" % dir_name)
     return dir_name
 
@@ -55,7 +56,7 @@ def get_dir_structure_in_dfs(path):
     dir_list = []
     for root, directories, files in os.walk(path):
         for directory in directories:
-            dir_list.append(root + directory)
+            dir_list.append(join(root, directory))
     dir_list.insert(0, path)
     logging.debug("Successfully scanned directory structure")
     return dir_list
@@ -83,8 +84,7 @@ class RemoveDuplicateFile(threading.Thread):
             logging.warn(
                 "File: %s already present in diectory: %s" % (file, target))
             filename, fileext = os.path.splitext(file)
-            target = join(self.trash_path, filename +
-                          str(datetime.today().strftime("%Y-%m-%d-%H-%M-%S-%f")) + fileext)
+            target = join(self.trash_path, filename + "-" + str(uuid.uuid4()) + fileext)
             os.rename(source, target)
         logging.info("Moving file: %s | source : %s | target : %s" %
                      (file, source, target))
@@ -92,40 +92,40 @@ class RemoveDuplicateFile(threading.Thread):
     def run(self):
         while len(global_dir_list) > 0:
             try:
-                dir_path = global_dir_list.pop(0)
+                dir_path=global_dir_list.pop(0)
             except IndexError as e:
                 logging.warning("Pop from empty list")
             logging.debug("scan file in directory: %s" % dir_path)
-            file_info_dict = self.extract_file_info(dir_path)
+            file_info_dict=self.extract_file_info(dir_path)
             for file in file_info_dict:
-                detail = file_info_dict[file]
+                detail=file_info_dict[file]
                 if file in global_file_detail and detail[0] == global_file_detail[file][0]:
                     logging.info("Found duplicate file: %s | origianl: %s | duplicate: %s" % (
                         file, global_file_detail[file][1], detail[1]))
                     self.move_file_to_trash(detail[1], file)
                 else:
-                    global_file_detail[file] = file_info_dict[file]
+                    global_file_detail[file]=file_info_dict[file]
 
 
 if __name__ == "__main__":
     initialize_logger()
-    path = input("Please enter source directory path: ")
-    path = path if path[-1] == '/' else path + "/"
+    path=input("Please enter source directory path: ")
+    path=path if path[-1] == '/' else path + "/"
     if not os.path.exists(path):
-        msg = "Invalid path"
+        msg="Invalid path"
         logging.error(msg)
         raise ValueError(msg)
-    global_file_detail = {}
-    cpu_count = get_cpu_count()
+    global_file_detail={}
+    cpu_count=get_cpu_count()
     # path = 'd:/pers/test/'
-    trash_dir_name = generate_trash_dir_name()
-    trash_dir_path = path + trash_dir_name
-    global_dir_list = get_dir_structure_in_dfs(path)
+    trash_dir_name=generate_trash_dir_name()
+    trash_dir_path=path + trash_dir_name
+    global_dir_list=get_dir_structure_in_dfs(path)
     if not trash_directory_already_present(path):
         create_trash_dir(trash_dir_path)
-        threads = []
+        threads=[]
         for i in range(1, cpu_count + 1):
-            thread = RemoveDuplicateFile("Thread-%d" % (i), trash_dir_path)
+            thread=RemoveDuplicateFile("Thread-%d" % (i), trash_dir_path)
             thread.start()
             threads.append(thread)
         for thread in threads:
