@@ -75,22 +75,33 @@ class RemoveDuplicateFile(threading.Thread):
         return {f: (os.path.getsize(join(path, f)), join(path, f)) for f in listdir(path)
                 if isfile(join(path, f))}
 
-    def move_file_to_trash(self, old_path, file):
-        os.rename(old_path, join(self.trash_path, file))
+    def move_file_to_trash(self, source, file):
+        target = join(self.trash_path, file)
+        try:
+            os.rename(source, target)
+        except Exception:
+            logging.warn(
+                "File: %s already present in diectory: %s" % (file, target))
+            filename, fileext = os.path.splitext(file)
+            target = join(self.trash_path, filename +
+                          str(datetime.today().strftime("%Y-%m-%d-%H-%M-%S-%f")) + fileext)
+            os.rename(source, target)
+        logging.info("Moving file: %s | source : %s | target : %s" %
+                     (file, source, target))
 
     def run(self):
         while len(global_dir_list) > 0:
             try:
                 dir_path = global_dir_list.pop(0)
             except IndexError as e:
-                logging.warning("%s-Pop from empty list" % (self.name))
+                logging.warning("Pop from empty list")
             logging.debug("scan file in directory: %s" % dir_path)
             file_info_dict = self.extract_file_info(dir_path)
             for file in file_info_dict:
                 detail = file_info_dict[file]
                 if file in global_file_detail and detail[0] == global_file_detail[file][0]:
-                    logging.info("%s-Found duplicate file: %s | origianl: %s | duplicate: %s" % (
-                        self.name, file, global_file_detail[file][1], detail[1]))
+                    logging.info("Found duplicate file: %s | origianl: %s | duplicate: %s" % (
+                        file, global_file_detail[file][1], detail[1]))
                     self.move_file_to_trash(detail[1], file)
                 else:
                     global_file_detail[file] = file_info_dict[file]
@@ -98,9 +109,10 @@ class RemoveDuplicateFile(threading.Thread):
 
 if __name__ == "__main__":
     initialize_logger()
+    path = input("Please enter source directory path: ")
+        
     global_file_detail = {}
     cpu_count = get_cpu_count()
-    path = input("Please enter source directory path: ")
     # path = 'd:/pers/test/'
     path = path if path[-1] == '/' else path + "/"
     trash_dir_name = generate_trash_dir_name()
