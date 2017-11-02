@@ -40,7 +40,7 @@ def trash_directory_already_present(path):
     for directory in directories:
         if directory.startswith('trash-'):
             logging.error(
-                "%s: already have a folder starting with 'trash-'. Remove this folder before running again." % path)
+                "%s already has a folder starting with 'trash-'. Remove this folder before running again." % path)
             return True
     return False
 
@@ -110,11 +110,14 @@ class RemoveDuplicateFile(threading.Thread):
 if __name__ == "__main__":
     initialize_logger()
     path = input("Please enter source directory path: ")
-        
+    path = path if path[-1] == '/' else path + "/"
+    if not os.path.exists(path):
+        msg = "Invalid path"
+        logging.error(msg)
+        raise ValueError(msg)
     global_file_detail = {}
     cpu_count = get_cpu_count()
     # path = 'd:/pers/test/'
-    path = path if path[-1] == '/' else path + "/"
     trash_dir_name = generate_trash_dir_name()
     trash_dir_path = path + trash_dir_name
     global_dir_list = get_dir_structure_in_dfs(path)
