@@ -115,7 +115,7 @@ class RemoveDuplicateFile(threading.Thread):
                 dir_path = global_dir_list.pop(0)
             except IndexError as e:
                 logging.warning("Pop from empty list")
-            logging.debug("scan file in directory: %s" % dir_path)
+            logging.debug("scan files in directory: %s" % dir_path)
             file_info_dict = self.extract_file_info(dir_path)
             for file in file_info_dict:
                 detail = file_info_dict[file]
